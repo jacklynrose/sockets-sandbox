@@ -94,6 +94,7 @@ def main():
 						
 						if data == b'\x00\x00\x00\x00':
 							print("Closing signal received. Closing...")
+							connection.close()
 							break
 
 						binary_int = int.from_bytes(data, byteorder='big')
