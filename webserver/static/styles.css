@@ -1,0 +1,72 @@
+header>h1 {
+    text-align: center;
+}
+
+.oversize [role="switch"][type="checkbox"] {
+    width: 8em;
+    height: 4em;
+    border-radius: 4em;
+    display: block;
+}
+
+.oversize [role="switch"][type="checkbox"]::before {
+    width: calc(4em - (var(--border-radius) * 2));
+}
+
+.oversize [role="switch"][type="checkbox"]:checked::before {
+    margin-inline-start: calc(4.45em - var(--border-radius))
+}
+
+.oversize span {
+    font-size: 1.2em;
+    text-align: center;
+    padding: 1em;
+    font-weight: bold;
+}
+
+.flex-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex>span {
+    padding-inline: 0.5em;
+}
+
+.typography-center {
+    text-align: center;
+}
+
+.typography-slim {
+    margin-bottom: 0;
+}
+
+.temperature {
+    display: grid;
+    grid-template-columns: min-content 3fr min-content 1fr;
+    gap: 1em;
+    align-items: center;
+}
+
+.temperature input {
+    margin: 0;
+}
+
+svg {
+    fill: white;
+    stroke: white;
+}
+
+.outline svg {
+    fill: black;
+    stroke: black;
+}
+
+.swing svg {
+    stroke: none;
+}
