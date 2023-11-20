@@ -13,14 +13,10 @@ class Weather:
 
         weather = forecast.forecast.weathers[0]
         temp = int(weather.temp['feels_like']-273.15)
-        rain = weather.precipitation_probability
-        clouds = weather.clouds
         status = weather.weather_code
 
         three_hour_forecast = {
             'temperature': temp,
-            'rain': rain,
-            'clouds': clouds,
             'status': status
         }
 

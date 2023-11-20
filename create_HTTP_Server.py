@@ -6,23 +6,6 @@ import socket
 hostName = '192.168.0.121'
 serverPort = 8080
 
-def from_bytes_big(b):
-    n = 0
-    for x in b:
-        n <<= 8
-        n |= x
-    return n
-
-time.strftime('%H%M')
-timestamp_h=time.localtime( time.time() )[3]*100
-timestamp_m=time.localtime( time.time() )[4]
-t = int(('t').encode('utf-8').hex())*10000
-timestamp = int(timestamp_m+timestamp_h+t)
-print(timestamp)
-timestamp = int.to_bytes(timestamp, length=4, byteorder='big')
-print(from_bytes_big(timestamp)//740000)
-print(timestamp)
-print(len(timestamp))
 def webpage():
     with open('webpage.html', 'r') as f:
         html_string = f.read()

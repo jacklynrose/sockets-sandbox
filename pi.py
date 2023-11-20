@@ -6,7 +6,8 @@ from Weather import Weather
 
 w_forecast = Weather()
 
-HOST = '192.168.0.148'
+#HOST = '192.168.0.148'
+HOST = '192.168.0.2'
 PORT = 5000
 
 def set_states(power_state=0,
@@ -116,8 +117,6 @@ def send_weather(s):
     to_send = int.to_bytes(int(('fi').encode('utf-8').hex()), length=4, byteorder='big')
     s.sendall(to_send)
 
-
-
 def signal_handler(signal, frame):
     global s
     with s:
@@ -153,13 +152,17 @@ def send_states(power_state=0,
     listen(s)
     time.sleep(2)
 
+def check_state():
+    ###go check UI for something
+    return None
+
 signal.signal(signal.SIGINT, signal_handler)
 
 
 def main():
     old_time_w = 0
     old_time_t = 0
-    old_state = 0
+    old_state = None
     global s
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -172,9 +175,10 @@ def main():
         sent_time=False
         sent_weather=False
 
-        if set_states(power_state=1, power_on=1,  temperature='20') != old_state:
-            send_states(power_state=1, power_on=1,  temperature='20')
-            old_state = set_states(power_state=1, power_on=1,  temperature='20')
+        if set_states(settings_state=1, power_on=0,  temperature='20', fan = '2') != old_state:
+            send_states(settings_state=1, power_on=0,  temperature='20', fan = '2')
+            old_state = set_states(settings_state=1, power_on=0,  temperature='20', fan = '2')
+            print(old_state)
             sent_state = True
 
         if abs(old_time_t-time.time()) >= 60:
