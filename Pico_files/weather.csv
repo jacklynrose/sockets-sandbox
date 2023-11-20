@@ -1,0 +1,10 @@
+ID,Description,Image_1,Image_2
+200,thunderstorm,raining_cloud,cloud_lightning
+300,drizzle,raining_cloud,
+500,rain,raining_cloud,
+600,snow,snowflake,
+800,clear,sun,
+801,few clouds,sun,cloud
+802,scattered clouds,sun,cloud
+803,broken clouds,cloud,sun
+804,overcast clouds,cloud,
