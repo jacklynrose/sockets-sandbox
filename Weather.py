@@ -1,6 +1,7 @@
 import pyowm
+import re
 
-class  Weather:
+class Weather:
     def __init__(self):
         self.key = '95f90ac291ec3d81fd76d7343aea3e72'
         self.place = 'Enmore, AU'
@@ -9,18 +10,19 @@ class  Weather:
         owm = pyowm.OWM(self.key)
         weather_mgr = owm.weather_manager()
         forecast = weather_mgr.forecast_at_place(self.place, '3h')
-        temp = []
-        rain = []
-        clouds = []
-        for weather in forecast.forecast:
-            temp.append(weather.temp)
-            rain.append(weather.rain)
-            clouds.append(weather.clouds)
 
-        five_day_forecast = {
-            'temperature' : temp,
+        weather = forecast.forecast.weathers[0]
+        temp = int(weather.temp['feels_like']-273.15)
+        rain = weather.precipitation_probability
+        clouds = weather.clouds
+        status = weather.weather_code
+
+        three_hour_forecast = {
+            'temperature': temp,
             'rain': rain,
-            'clouds': clouds
+            'clouds': clouds,
+            'status': status
         }
 
-        return five_day_forecast
+        return three_hour_forecast
+
