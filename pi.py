@@ -65,6 +65,7 @@ def set_states(power_state=0,
            }
            }
     send_signal = False
+
     if power_state == 1:
         if power_on == 1:
             base_signal = power_on_sig
@@ -74,9 +75,8 @@ def set_states(power_state=0,
             base_signal = power_off_sig
             send_signal = False
 
-
         signal = address + base_signal + crc
-        print(signal)
+        print('sending power signal')
         if len(signal) == 28:
             to_send = int(signal, 2)
             to_send = int.to_bytes(to_send, length=4, byteorder='big')
@@ -86,13 +86,32 @@ def set_states(power_state=0,
         else:
             return 'exception'
 
-    if settings_state == 1 or send_signal:
+    if settings_state == 1 and power_on==1:
         mode_settings = mode_dict['value'][mode]
         temp_settings = temperature_dict['value'][temperature]
         fan_settings = fan_dict['value'][fan]
         base_signal = timer_settings+mode_settings+temp_settings+pos_13+fan_settings
 
         signal = address+base_signal+crc
+        print('settings signal')
+
+        if len(signal) == 28:
+            to_send = int(signal, 2)
+            to_send = int.to_bytes(to_send, length=4, byteorder='big')
+            send(s, to_send)
+            listen(s)
+            time.sleep(2)
+        else:
+            return 'exception'
+
+    if power_on==1:
+        print('power sent, resend signal')
+        mode_settings = mode_dict['value'][mode]
+        temp_settings = temperature_dict['value'][temperature]
+        fan_settings = fan_dict['value'][fan]
+        base_signal = timer_settings + mode_settings + temp_settings + pos_13 + fan_settings
+
+        signal = address + base_signal + crc
         print(signal)
 
         if len(signal) == 28:
@@ -103,6 +122,7 @@ def set_states(power_state=0,
             time.sleep(2)
         else:
             return 'exception'
+
 
 def send_time(s):
     timestamp_h = time.localtime(time.time())[3] * 100
@@ -159,13 +179,18 @@ def send_states(new_state_dict, old_state):
     new_mode = new_state_dict['mode']
     new_power = new_state_dict['power']
     new_temp = new_state_dict['temp']
+    old_fan = old_state['fan']
+    old_mode = old_state['mode']
+    old_temp = old_state['temp']
 
-    if new_fan != old_state['fan'] or new_mode != old_state['mode'] or new_temp != ['temp']:
+    if new_fan != old_state['fan'] or new_mode != old_state['mode'] or new_temp != old_state['temp']:
+        print('change_settings')
         settings_state = 1
     else:
         settings_state = 0
 
     if new_power != old_state['power']:
+        print('change_power')
         power_state = 1
     else:
         power_state = 0
