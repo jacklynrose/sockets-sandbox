@@ -1,3 +1,5 @@
+import time
+
 class NECProtocolEncoderDecoder:
     def __init__(self):
         # Constants for NEC protocol with noise tolerance
@@ -52,3 +54,4 @@ class NECProtocolEncoderDecoder:
             encoded_data += self.encode_bit(bit)
         encoded_data += [self.SHORT_PULSE]  # Add a short pulse at the end
         return encoded_data
+    

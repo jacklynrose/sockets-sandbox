@@ -11,7 +11,11 @@ from UI_create import create_UI
 import os
 import json
 from adhoc_functions import *
+from NECprotocol import NECProtocolEncoderDecoder as encoder
+from ir_tx import Player
 
+
+IR_led = Pin(15, Pin.OUT)
 
 display = create_PiicoDev_SSD1306(freq=400000)
 display.fill(0)
@@ -108,18 +112,18 @@ def check_weather(data):
                     UI.error(1)
                     print('could not display images')
 
-def transmit_signal(signal):
-    print('transmit')
-    return None
 
 def check_state_signal(data):
     string_data = bin(from_bytes_big(data))[2:]
     print(string_data)
-    off_int = int('1000100011000000000001010111')
+    off_int = int('1000100011000000000001010001')
     on_int = int('1000100000000100111101000111')
     int_string = int(string_data)
     if state_signal_match(string_data):
-        transmit_signal(string_data)
+        data = encoder().encode_data(string_data)
+        Player(IR_led).play(data)
+        time.sleep(1)
+        Player(IR_led).play(data)
     if off_int == int_string:
         print('power_off')
         UI.AC_OFF()
