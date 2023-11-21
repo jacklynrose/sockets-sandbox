@@ -1,3 +1,5 @@
+import time
+
 class NECProtocolEncoderDecoder:
     def __init__(self):
         # Constants for NEC protocol with noise tolerance
@@ -52,3 +54,16 @@ class NECProtocolEncoderDecoder:
             encoded_data += self.encode_bit(bit)
         encoded_data += [self.SHORT_PULSE]  # Add a short pulse at the end
         return encoded_data
+
+        # Function to play the IR signal on the specified LED pin
+    def play_ir_signal(self, data, led_pin):
+        encoded_data = self.encode_data(data)
+        for i in range(0, len(encoded_data), 2):
+            # Toggle the LED on for the burst duration
+            led_pin.on()
+            time.sleep_us(encoded_data[i])
+
+            # Toggle the LED off for the gap duration (if there is a gap)
+            if i + 1 < len(encoded_data):
+                led_pin.off()
+                time.sleep_us(encoded_data[i + 1])
