@@ -13,6 +13,25 @@ HOST = '192.168.0.148'
 #HOST = '192.168.0.2'
 PORT = 5000
 
+def calculate_checksum(signal):
+    # Check if the input signal is exactly 24 bits
+    if len(signal) != 24:
+        raise ValueError("Input signal must be 24 bits long")
+
+    # Split the 24-bit signal into 4-bit groups
+    groups = [signal[i:i+4] for i in range(0, len(signal), 4)]
+
+    # Add the values of each 4-bit group
+    checksum = sum(int(group, 2) for group in groups)
+
+    # Ignore overflow by subtracting 32 if the sum is greater than or equal to 32
+    checksum = checksum - (32 * (checksum // 32))
+
+    # Convert the result to a 4-bit binary string
+    checksum_binary = format(checksum, '04b')
+
+    return checksum_binary
+
 def set_states(power_state=0,
                settings_state=0,
                power_on=0,
@@ -22,7 +41,6 @@ def set_states(power_state=0,
                fan='0'):
     # set_values
     address = '10001000'
-    crc = '0111'
     power_on_sig = '0000010011110100'
     power_off_sig = '1100000000000101'
     timer_settings = '00001'
@@ -75,7 +93,7 @@ def set_states(power_state=0,
             base_signal = power_off_sig
             send_signal = False
 
-        signal = address + base_signal + crc
+        signal = address + base_signal+calculate_checksum(address+base_signal)
         print('sending power signal')
         if len(signal) == 28:
             to_send = int(signal, 2)
@@ -92,7 +110,7 @@ def set_states(power_state=0,
         fan_settings = fan_dict['value'][fan]
         base_signal = timer_settings+mode_settings+temp_settings+pos_13+fan_settings
 
-        signal = address+base_signal+crc
+        signal = address+base_signal+calculate_checksum(address+base_signal)
         print('settings signal')
 
         if len(signal) == 28:
@@ -111,8 +129,7 @@ def set_states(power_state=0,
         fan_settings = fan_dict['value'][fan]
         base_signal = timer_settings + mode_settings + temp_settings + pos_13 + fan_settings
 
-        signal = address + base_signal + crc
-        print(signal)
+        signal = address + base_signal + calculate_checksum(address+base_signal)
 
         if len(signal) == 28:
             to_send = int(signal, 2)
@@ -179,9 +196,6 @@ def send_states(new_state_dict, old_state):
     new_mode = new_state_dict['mode']
     new_power = new_state_dict['power']
     new_temp = new_state_dict['temp']
-    old_fan = old_state['fan']
-    old_mode = old_state['mode']
-    old_temp = old_state['temp']
 
     if new_fan != old_state['fan'] or new_mode != old_state['mode'] or new_temp != old_state['temp']:
         print('change_settings')
@@ -247,9 +261,11 @@ def main():
 
         if check_state() != old_state:
             new_state = check_state()
-            send_states(new_state, old_state)
-            old_state = new_state
-            sent_state = True
+            time.sleep(1)
+            if check_state() == new_state:
+                send_states(new_state, old_state)
+                old_state = new_state
+                sent_state = True
 
         if abs(old_time_t-time.time()) >= 60:
             send_time(s)
