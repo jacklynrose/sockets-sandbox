@@ -3,11 +3,14 @@ import signal
 import sys
 import time
 from Weather import Weather
+import requests
+
+server_url = 'http://192.168.0.139:5050'
 
 w_forecast = Weather()
 
-#HOST = '192.168.0.148'
-HOST = '192.168.0.2'
+HOST = '192.168.0.148'
+#HOST = '192.168.0.2'
 PORT = 5000
 
 def set_states(power_state=0,
@@ -27,10 +30,9 @@ def set_states(power_state=0,
 
     mode_dict = {'position': (6, 8),
             'value': {
-                'heating': '100',
+                'heat': '100',
                 'auto': '011',
-                'dehumidify': '001',
-                'cooling': '000'
+                'cool': '000'
             }
             }
 
@@ -57,30 +59,70 @@ def set_states(power_state=0,
     fan_dict = {'position': (14, 16),
            'value': {
                '0': '001',
-               '2': '000',
-               '3': '010',
+               '1': '000',
+               '2': '010',
                '4': '100'
            }
            }
+    send_signal = False
 
     if power_state == 1:
         if power_on == 1:
             base_signal = power_on_sig
+            send_signal = True
+
         if power_off == 1:
             base_signal = power_off_sig
+            send_signal = False
 
-    if settings_state == 1:
+        signal = address + base_signal + crc
+        print('sending power signal')
+        if len(signal) == 28:
+            to_send = int(signal, 2)
+            to_send = int.to_bytes(to_send, length=4, byteorder='big')
+            send(s, to_send)
+            listen(s)
+            time.sleep(2)
+        else:
+            return 'exception'
+
+    if settings_state == 1 and power_on==1:
         mode_settings = mode_dict['value'][mode]
         temp_settings = temperature_dict['value'][temperature]
         fan_settings = fan_dict['value'][fan]
         base_signal = timer_settings+mode_settings+temp_settings+pos_13+fan_settings
 
-    signal = address+base_signal+crc
+        signal = address+base_signal+crc
+        print('settings signal')
 
-    if len(signal) == 28:
-        return signal
-    else:
-        return 'exception'
+        if len(signal) == 28:
+            to_send = int(signal, 2)
+            to_send = int.to_bytes(to_send, length=4, byteorder='big')
+            send(s, to_send)
+            listen(s)
+            time.sleep(2)
+        else:
+            return 'exception'
+
+    if power_on==1:
+        print('power sent, resend signal')
+        mode_settings = mode_dict['value'][mode]
+        temp_settings = temperature_dict['value'][temperature]
+        fan_settings = fan_dict['value'][fan]
+        base_signal = timer_settings + mode_settings + temp_settings + pos_13 + fan_settings
+
+        signal = address + base_signal + crc
+        print(signal)
+
+        if len(signal) == 28:
+            to_send = int(signal, 2)
+            to_send = int.to_bytes(to_send, length=4, byteorder='big')
+            send(s, to_send)
+            listen(s)
+            time.sleep(2)
+        else:
+            return 'exception'
+
 
 def send_time(s):
     timestamp_h = time.localtime(time.time())[3] * 100
@@ -132,29 +174,53 @@ def listen(s):
     binary_int = int.from_bytes(data, byteorder='big')
     print(f"Received data: {bin(binary_int)}")
 
-def send_states(power_state=0,
-               settings_state=0,
-               power_on=0,
-               power_off=0,
-               mode='auto',
-               temperature='24',
-               fan='0'):
-    states = set_states(power_state=power_state,
+def send_states(new_state_dict, old_state):
+    new_fan = new_state_dict['fan']
+    new_mode = new_state_dict['mode']
+    new_power = new_state_dict['power']
+    new_temp = new_state_dict['temp']
+    old_fan = old_state['fan']
+    old_mode = old_state['mode']
+    old_temp = old_state['temp']
+
+    if new_fan != old_state['fan'] or new_mode != old_state['mode'] or new_temp != old_state['temp']:
+        print('change_settings')
+        settings_state = 1
+    else:
+        settings_state = 0
+
+    if new_power != old_state['power']:
+        print('change_power')
+        power_state = 1
+    else:
+        power_state = 0
+
+    if new_power == 'on':
+        power_on = 1
+        power_off = 0
+    else:
+        power_on = 0
+        power_off = 1
+
+    set_states(power_state=power_state,
                settings_state=settings_state,
                power_on=power_on,
                power_off=power_off,
-               mode=mode,
-               temperature=temperature,
-               fan=fan)
-    to_send = int(states, 2)
-    to_send = int.to_bytes(to_send, length=4, byteorder='big')
-    send(s, to_send)
-    listen(s)
-    time.sleep(2)
+               mode=new_mode,
+               temperature=str(int(float(new_temp))),
+               fan=new_fan)
+
+
 
 def check_state():
-    ###go check UI for something
-    return None
+    try:
+        response = requests.get('http://192.168.0.139:5050/get')  # Replace <your_server_address> with the actual address of your server
+        response.raise_for_status()  # Raise an exception for bad responses (4xx or 5xx)
+
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching state: {e}")
+        return None
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -162,7 +228,11 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     old_time_w = 0
     old_time_t = 0
-    old_state = None
+    old_state = {'fan': '1',
+                 'mode': 'cool',
+                 'power': 'off',
+                 'swing': 'both',
+                 'temp': '21'}
     global s
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -175,10 +245,10 @@ def main():
         sent_time=False
         sent_weather=False
 
-        if set_states(settings_state=1, power_on=0,  temperature='20', fan = '2') != old_state:
-            send_states(settings_state=1, power_on=0,  temperature='20', fan = '2')
-            old_state = set_states(settings_state=1, power_on=0,  temperature='20', fan = '2')
-            print(old_state)
+        if check_state() != old_state:
+            new_state = check_state()
+            send_states(new_state, old_state)
+            old_state = new_state
             sent_state = True
 
         if abs(old_time_t-time.time()) >= 60:
