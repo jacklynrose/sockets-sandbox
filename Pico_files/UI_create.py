@@ -66,6 +66,12 @@ class create_UI:
             t = text[c]
             self.remove_image(blank, coordinate[0], coordinate[1])
             self.plot_image(font[t]['pizel_values'], coordinate[0], coordinate[1])
+    
+    def remove_text(self, coordinates, size):
+        blank = self.create_blank(size)
+        font = self.fonts[size]
+        for c, coordinate in enumerate(coordinates):
+            self.remove_image(blank, coordinate[0], coordinate[1])
 
     def create_blank(self, size):
         pixels = []
@@ -120,8 +126,9 @@ class create_UI:
         location = (86,43)
         self.display_image(location, icon)
         
+        
     def set_temp(self, temp):
-        locations = [(66,55),(73, 55)]
+        locations = [(66,53),(73, 53)]
         self.display_text(locations, temp, 9)
         
     def indoor_temp(self, temp):
@@ -179,5 +186,22 @@ class create_UI:
         if charge == 2:
             image = self.images_dict['full_battery']
             self.plot_image(image['pizel_values'], coordinates[0], coordinates[1])
+    
+    def AC_OFF(self):
+        #remove_swing
+        self.UD_swing(0)
+        self.LR_swing(0)
+        #remove_temp
+        locations = [(66,53),(73, 53)]
+        self.remove_text(locations, 9)
+        #remove_fan
+        location = (86,43)
+        blank = self.create_blank(19)
+        self.remove_image(blank, location[0], location[1])
+        #remove_mode
+        location = (108,43)
+        blank = self.create_blank(19)
+        self.remove_image(blank, location[0], location[1])
+        
             
     
