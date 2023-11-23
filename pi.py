@@ -4,6 +4,11 @@ import sys
 import time
 from Weather import Weather
 import requests
+import json
+import math
+
+with open('LG_send_dict.json', 'r') as f:
+    send_dict = json.load(f)
 
 server_url = 'http://192.168.0.139:5050'
 
@@ -32,114 +37,37 @@ def calculate_checksum(signal):
 
     return checksum_binary
 
-def set_states(power_state=0,
-               settings_state=0,
-               power_on=0,
-               power_off=0,
-               mode='auto',
+def set_power(power_on=0,
+              power_off=0):
+
+
+    if power_on == 1:
+        signal = send_dict['power_on']
+
+    if power_off == 1:
+        signal = send_dict['power_off']
+
+    print('sending power signal')
+    print('signal')
+    to_send = int(signal, 2)
+    to_send = int.to_bytes(to_send, length=4, byteorder='big')
+    send(s, to_send)
+    listen(s)
+    time.sleep(2)
+
+def set_states(mode='auto',
                temperature='24',
                fan='0'):
-    # set_values
-    address = '10001000'
-    power_on_sig = '0000010011110100'
-    power_off_sig = '1100000000000101'
-    timer_settings = '00001'
-    pos_13 = '0'
 
-    mode_dict = {'position': (6, 8),
-            'value': {
-                'heat': '100',
-                'auto': '011',
-                'cool': '000'
-            }
-            }
+    print('sending state_signal')
 
-    temperature_dict = {'position': (9, 12),
-                   'value': {
-                       '16': '0000',
-                       '17': '0001',
-                       '18': '0010',
-                       '19': '0011',
-                       '20': '0100',
-                       '21': '0101',
-                       '22': '0110',
-                       '23': '0111',
-                       '24': '1000',
-                       '25': '1001',
-                       '26': '1010',
-                       '27': '1011',
-                       '28': '1100',
-                       '29': '1101',
-                       '30': '1111'
-                   }
-                   }
-
-    fan_dict = {'position': (14, 16),
-           'value': {
-               '0': '001',
-               '1': '000',
-               '2': '010',
-               '4': '100'
-           }
-           }
-    send_signal = False
-
-    if power_state == 1:
-        if power_on == 1:
-            base_signal = power_on_sig
-            send_signal = True
-
-        if power_off == 1:
-            base_signal = power_off_sig
-            send_signal = False
-
-        signal = address + base_signal+calculate_checksum(address+base_signal)
-        print('sending power signal')
-        if len(signal) == 28:
-            to_send = int(signal, 2)
-            to_send = int.to_bytes(to_send, length=4, byteorder='big')
-            send(s, to_send)
-            listen(s)
-            time.sleep(2)
-        else:
-            return 'exception'
-
-    if settings_state == 1 and power_on==1:
-        mode_settings = mode_dict['value'][mode]
-        temp_settings = temperature_dict['value'][temperature]
-        fan_settings = fan_dict['value'][fan]
-        base_signal = timer_settings+mode_settings+temp_settings+pos_13+fan_settings
-
-        signal = address+base_signal+calculate_checksum(address+base_signal)
-        print('settings signal')
-
-        if len(signal) == 28:
-            to_send = int(signal, 2)
-            to_send = int.to_bytes(to_send, length=4, byteorder='big')
-            send(s, to_send)
-            listen(s)
-            time.sleep(2)
-        else:
-            return 'exception'
-
-    if power_on==1:
-        print('power sent, resend signal')
-        mode_settings = mode_dict['value'][mode]
-        temp_settings = temperature_dict['value'][temperature]
-        fan_settings = fan_dict['value'][fan]
-        base_signal = timer_settings + mode_settings + temp_settings + pos_13 + fan_settings
-
-        signal = address + base_signal + calculate_checksum(address+base_signal)
-
-        if len(signal) == 28:
-            to_send = int(signal, 2)
-            to_send = int.to_bytes(to_send, length=4, byteorder='big')
-            send(s, to_send)
-            listen(s)
-            time.sleep(2)
-        else:
-            return 'exception'
-
+    key = f'{mode}_{math.floor(float(temperature))}_{fan}'
+    signal = send_dict[key]
+    to_send = int(signal, 2)
+    to_send = int.to_bytes(to_send, length=4, byteorder='big')
+    send(s, to_send)
+    listen(s)
+    time.sleep(3)
 
 def send_time(s):
     timestamp_h = time.localtime(time.time())[3] * 100
@@ -192,6 +120,8 @@ def listen(s):
     print(f"Received data: {bin(binary_int)}")
 
 def send_states(new_state_dict, old_state):
+    settings_state = 0
+    power_state = 0
     new_fan = new_state_dict['fan']
     new_mode = new_state_dict['mode']
     new_power = new_state_dict['power']
@@ -205,25 +135,18 @@ def send_states(new_state_dict, old_state):
 
     if new_power != old_state['power']:
         print('change_power')
-        power_state = 1
-    else:
-        power_state = 0
+        if new_power == 'on':
+            set_power(power_on=1)
+            print('sending_states')
+            set_states(new_mode, new_temp, new_fan)
+        else:
+            set_power(power_off=1)
+            power_state = new_power
 
-    if new_power == 'on':
-        power_on = 1
-        power_off = 0
-    else:
-        power_on = 0
-        power_off = 1
 
-    set_states(power_state=power_state,
-               settings_state=settings_state,
-               power_on=power_on,
-               power_off=power_off,
-               mode=new_mode,
-               temperature=str(int(float(new_temp))),
-               fan=new_fan)
-
+    if settings_state == 1 and old_state['power'] == 'on':
+        print('sending_states')
+        set_states(new_mode, new_temp, new_fan)
 
 
 def check_state():
