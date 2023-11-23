@@ -14,7 +14,15 @@ from adhoc_functions import *
 from NECprotocol import NECProtocolEncoderDecoder as encoder
 from ir_tx import Player
 
+with open('weather.json', 'r') as f:
+    weather = json.load(f)
+    
+weather_keys = weather.keys()
+print(weather_keys)
+del weather
 
+recieve_dict = LazyJSONLoader('LG_recieve_dict.json')
+weather = LazyJSONLoader('weather.json')
 IR_led = Pin(15, Pin.OUT)
 
 display = create_PiicoDev_SSD1306(freq=400000)
@@ -23,24 +31,7 @@ display.fill(0)
 sensor = PiicoDev_BME280()
 prev_time = 0000
 
-# Opening JSON file
-with open('images.json', 'r') as openfile:
-    images_dict = json.load(openfile)
-    
-with open('text_19px.json', 'r') as openfile:
-    text_19 = json.load(openfile)
-    
-with open('text_9px.json', 'r') as openfile:
-    text_9 = json.load(openfile)
-
-with open('weather.json', 'r') as openfile:
-    weather = json.load(openfile)
-
-fonts = {}
-fonts[9] = text_9
-fonts[19] = text_19
-
-UI = create_UI(display, fonts, images_dict)
+UI = create_UI(display, 'fonts.json', 'images.json')
 
 UI.initialise()
 
@@ -93,10 +84,11 @@ def check_weather(data):
         if is_matching_pattern(string_data, status_pattern):
             weather_condition = from_bytes_big(data)-7773000
             print(weather_condition)
-            if weather_condition < 800 and weather_condition in weather.keys():
-                images = weather[str(roundup(weather_condition))]
+            images = []
+            if weather_condition < 800 and str(weather_condition) in weather_keys:
+                images = weather.get(str(roundup(weather_condition)))
             elif weather_condition in [800, 801, 802, 803, 804]:
-                images = weather[str(weather_condition)]
+                images = weather.get(str(weather_condition))
            
             if len(images)>1:
                 try:
@@ -115,29 +107,31 @@ def check_weather(data):
 
 def check_state_signal(data):
     string_data = bin(from_bytes_big(data))[2:]
-    print(string_data)
-    off_int = int('1000100011000000000001010001')
-    on_int = int('1000100000000100111101000111')
-    int_string = int(string_data)
-    if state_signal_match(string_data):
-        data = encoder().encode_data(string_data)
+    if is_matching_state(string_data, '1100010000001'):
+        print('Match')
+        IR_signal = recieve_dict.get(string_data)['signal']
+        setting = recieve_dict.get(string_data)['setting']
+        print(IR_signal)
+        print(setting)
+        if isinstance(setting, int):
+            if setting == 0:
+                print('turn power off')
+                UI.AC_OFF()
+            else:
+                print('turn power on')
+        else:
+            mode = setting['mode']
+            print(mode)
+            temp = setting['temp']
+            print(temp)
+            fan = setting['fan']
+            print(fan)
+            UI.set_temp(temp)
+            UI.mode(mode)
+            UI.fan(fan)
+            
+        data = encoder().encode_data(IR_signal)
         Player(IR_led).play(data)
-        time.sleep(1)
-        Player(IR_led).play(data)
-    if off_int == int_string:
-        print('power_off')
-        UI.AC_OFF()
-    else:
-        if on_int == int_string:
-            print('power_on')
-        elif state_signal_match(string_data):
-            temp = temp_dict()['value'][string_data[16:20]]
-            m = mode_dict()['value'][string_data[13:16]]
-            f = fan_dict()['value'][string_data[21:24]]
-            UI.set_temp(str(temp))
-            UI.mode(m)
-            UI.fan(f)
-            return None
 
 def socket_connect(HOST, PORT):
     global connection

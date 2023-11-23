@@ -1,4 +1,5 @@
 import math
+import json
 
 def from_bytes_big(b):
     n = 0
@@ -12,65 +13,44 @@ def is_matching_pattern(s, startswith):
         return True
     else:
         return False
-    
-def state_signal_match(s):
-    address = '10001000'
-    crc = '0111'
-    if s.startswith(address) and s[len(address):].isdigit() and crc in s:
+
+def is_matching_state(s, startswith):
+    if s.startswith(startswith) and s[len(startswith):].isdigit() and len(s) == 21:
         return True
     else:
         return False
-    
-def off_match(s):
-    address = '10001000'
-    crc = '0111'
-    if s.startswith(address) and s[len(address):].isdigit() and crc in s:
-        return True
-    else:
-        return False
-    
+
 def roundup(x):
     return int(math.ceil(x / 100.0)) * 100
 
-def temp_dict():
-    temperature_dict = {'position': (9, 12),
-                   'value': {
-                       '0000':'16',
-                       '0001':'17',
-                       '0010':'18',
-                       '0011':'19',
-                       '0100':'20',
-                       '0101':'21',
-                       '0110':'22',
-                       '0111':'23',
-                       '1000':'24',
-                       '1001':'25',
-                       '1010':'26',
-                       '1011':'27',
-                       '1100':'28',
-                       '1101':'29',
-                       '1111':'30'
-                   }
-                   }
-    return temperature_dict
+class LazyJSONLoader:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.file_handle = None
 
-def mode_dict():
-    mode_dict = {'position': (6, 8),
-                'value': {
-                    '100':'heat',
-                    '011':'auto',
-                    '001':'dehumidify',
-                    '000':'cool'
-                }
-                }
-    return mode_dict
+    def open(self):
+        self.file_handle = open(self.file_path, 'r')
 
-def fan_dict():
-    fan_dict = {'position': (14, 16),
-               'value': {
-                   '001':0,
-                   '000':1,
-                   '010':2
-               }
-               }
-    return fan_dict
+    def close(self):
+        if self.file_handle is not None:
+            self.file_handle.close()
+
+    def get(self, key):
+        try:
+            self.open()
+            for line in self.file_handle:
+                data = json.loads(line)
+                if key in data:
+                    return data[key]
+        finally:
+            self.close()
+            
+    def keys(self):
+        try:
+            self.open()
+            for line in self.file_handle:
+                data = json.loads(line)
+                yield data.keys()
+        finally:
+            self.close()
+
