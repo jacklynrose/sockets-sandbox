@@ -11,11 +11,12 @@ with open('LG_send_dict.json', 'r') as f:
     send_dict = json.load(f)
 
 server_url = 'http://192.168.0.139:5050'
-
 w_forecast = Weather()
-
 HOST = '192.168.0.148'
 PORT = 5000
+MAX_RECONNECT_ATTEMPTS = 5
+RECONNECT_WAIT_SECONDS = 30
+ERROR_LOG_FILE = 'error_log.json'
 
 def check_state():
     try:
@@ -47,6 +48,16 @@ def calculate_checksum(signal):
 
     return checksum_binary
 
+def log_error(error_message):
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+    error_data = {'timestamp': timestamp, 'error_message': error_message}
+
+    try:
+        with open(ERROR_LOG_FILE, 'a') as log_file:
+            log_file.write(json.dumps(error_data) + '\n')
+    except Exception as e:
+        print(f"Error logging to file: {e}")
+
 def signal_handler(s):
     with s:
         print("\nSending closing signal...")
@@ -58,54 +69,65 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 def main():
-    old_time_w = 0
-    old_time_t = 0
-    old_state = {'fan': '1',
-                 'mode': 'cool',
-                 'power': 'off',
-                 'swing': 'both',
-                 'temp': '21'}
-    global s
+    reconnect_attempts = 0
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((HOST, PORT))
+    while reconnect_attempts < MAX_RECONNECT_ATTEMPTS:
+        try:
+            old_time_w = 0
+            old_time_t = 0
+            old_state = {'fan': '1',
+                         'mode': 'cool',
+                         'power': 'off',
+                         'swing': 'both',
+                         'temp': '21'}
+            global s
 
-    signalsend = SignalSend(s, send_dict, Weather)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((HOST, PORT))
 
-    print(f"Client is connected {s}")
+            signalsend = SignalSend(s, send_dict, Weather)
 
-    while True:
-        sent_state = False
-        sent_time = False
-        sent_weather = False
+            print(f"Client is connected {s}")
+            reconnect_attempts = 0
 
-        if check_state() != old_state:
-            new_state = check_state()
-            time.sleep(1)
-            if check_state() == new_state:
-                signalsend.send_states(new_state, old_state)
-                old_state = new_state
-                sent_state = True
+            while True:
+                sent_state = False
+                sent_time = False
+                sent_weather = False
 
-        if abs(old_time_t - time.time()) >= 60:
-            signalsend.send_time()
-            old_time_t = time.time()
-            sent_time = True
+                if check_state() != old_state:
+                    new_state = check_state()
+                    time.sleep(1)
+                    if check_state() == new_state:
+                        signalsend.send_states(new_state, old_state)
+                        old_state = new_state
+                        sent_state = True
 
-        if abs(old_time_w - time.time()) >= 3600:
-            signalsend.send_weather()
-            old_time_w = time.time()
-            sent_weather = True
+                if abs(old_time_t - time.time()) >= 60:
+                    signalsend.send_time()
+                    old_time_t = time.time()
+                    sent_time = True
 
-        if sent_state or sent_time or sent_weather:
+                if abs(old_time_w - time.time()) >= 3600:
+                    signalsend.send_weather()
+                    old_time_w = time.time()
+                    sent_weather = True
+
+                if sent_state or sent_time or sent_weather:
+                    continue
+                else:
+                    to_send = int(('xc').encode('utf-8').hex())
+                    to_send = int.to_bytes(to_send, length=4, byteorder='big')
+                    signalsend.send(to_send)
+                    signalsend.listen()
+
+                time.sleep(2)
+        except (socket.error, ConnectionError) as e:
+            reconnect_attempts += 1
+            print(f"Socket connection lost. Reconnecting... Attempt {reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS}")
+            log_error(str(e))
+            time.sleep(RECONNECT_WAIT_SECONDS)
             continue
-        else:
-            to_send = int(('xc').encode('utf-8').hex())
-            to_send = int.to_bytes(to_send, length=4, byteorder='big')
-            signalsend.send(to_send)
-            signalsend.listen()
-
-        time.sleep(2)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from PiicoDev_BME280 import PiicoDev_BME280
 import network
 import socket
 from time import sleep
+import time
 import machine
 from machine import Pin
 import struct
@@ -16,23 +17,17 @@ from ir_tx import Player
 
 with open('weather.json', 'r') as f:
     weather = json.load(f)
-    
-weather_keys = weather.keys()
-print(weather_keys)
-del weather
+
+global reconnect_attempts
 
 recieve_dict = LazyJSONLoader('LG_recieve_dict.json')
 weather = LazyJSONLoader('weather.json')
 IR_led = Pin(15, Pin.OUT)
-
 display = create_PiicoDev_SSD1306(freq=400000)
 display.fill(0)
-
 sensor = PiicoDev_BME280()
 prev_time = 0000
-
 UI = create_UI(display, 'fonts.json', 'images.json')
-
 UI.initialise()
 
 port=5000
@@ -40,6 +35,10 @@ ssid = 'Optus_0732D1'
 #ssid = 'Telstra35CE44'
 password = 'pekeswaderpvy9v'
 #password = 'pzepeyeq678rehzt'
+
+ERROR_LOG_FILE = 'error_log.json'
+MAX_RECONNECT_ATTEMPTS = 5
+RECONNECT_WAIT_SECONDS = 5
 
 
 def connect():
@@ -147,6 +146,7 @@ def socket_connect(HOST, PORT):
     client = s.accept()[0]
     UI.socket_connect(1)
     while True:
+        reconnect_attempts = 0
         data = client.recv(4)
         
         
@@ -172,13 +172,31 @@ def socket_connect(HOST, PORT):
         client.sendall(data)
     
 
+def log_error(error_message):
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+    error_data = {'timestamp': timestamp, 'error_message': error_message}
 
-try:
-    ip = connect()
-    sleep(3)
-    tempC, presPa, humRH = sensor.values()
-    UI.indoor_temp(str(int(tempC)))
-    socket_connect(ip, port)
-except KeyboardInterrupt:
-    machine.reset()
-    
+    try:
+        with open(ERROR_LOG_FILE, 'a') as log_file:
+            log_file.write(json.dumps(error_data) + '\n')
+    except Exception as e:
+        print(f"Error logging to file: {e}")
+
+
+def main():
+    reconnect_attempts = 0
+
+    while reconnect_attempts < MAX_RECONNECT_ATTEMPTS:
+        try:
+            ip = connect()
+            sleep(3)
+            tempC, presPa, humRH = sensor.values()
+            UI.indoor_temp(str(int(tempC)))
+            socket_connect(ip, port)
+        except (socket.error, ConnectionError) as e:
+            reconnect_attempts += 1
+            print(f"Socket connection lost. Reconnecting... Attempt {reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS}")
+            log_error(str(e))
+            time.sleep(RECONNECT_WAIT_SECONDS)
+
+main()
