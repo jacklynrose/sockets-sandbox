@@ -21,7 +21,7 @@ def is_matching_state(s, startswith):
         return False
 
 def roundup(x):
-    return int(math.ceil(x / 100.0)) * 100
+    return int(math.floor(x / 100.0)) * 100
 
 class LazyJSONLoader:
     def __init__(self, file_path):

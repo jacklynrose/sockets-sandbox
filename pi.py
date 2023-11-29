@@ -11,7 +11,6 @@ with open('LG_send_dict.json', 'r') as f:
     send_dict = json.load(f)
 
 server_url = 'http://192.168.0.139:5050'
-w_forecast = Weather()
 HOST = '192.168.0.148'
 PORT = 5000
 MAX_RECONNECT_ATTEMPTS = 5
@@ -85,7 +84,7 @@ def main():
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((HOST, PORT))
 
-            signalsend = SignalSend(s, send_dict, Weather)
+            signalsend = SignalSend(s, send_dict)
 
             print(f"Client is connected {s}")
             reconnect_attempts = 0

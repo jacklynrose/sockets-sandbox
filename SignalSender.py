@@ -1,12 +1,15 @@
 import time
 import math
+import pyowm
+import re
 
 
 class SignalSend:
-    def __init__(self, socket, send_dict, weather):
+    def __init__(self, socket, send_dict):
         self.socket = socket
         self.send_dict = send_dict
-        self.weather = weather
+        self.key = '95f90ac291ec3d81fd76d7343aea3e72'
+        self.place = 'Enmore, AU'
 
     def send(self, to_send):
         self.socket.sendall(to_send)
@@ -60,7 +63,7 @@ class SignalSend:
     def send_weather(self):
 
         additions = [1000, 100000]
-        threehf = self.weather.get_weather()
+        threehf = self.get_weather()
 
         for element in threehf.keys():
             e = threehf[element]
@@ -108,3 +111,19 @@ class SignalSend:
         if settings_state == 1 and old_state['power'] == 'on':
             print('sending_states')
             self.set_states(new_mode, new_temp, new_fan)
+
+    def get_weather(self):
+        owm = pyowm.OWM(self.key)
+        weather_mgr = owm.weather_manager()
+        forecast = weather_mgr.forecast_at_place(self.place, '3h')
+
+        weather = forecast.forecast.weathers[0]
+        temp = int(weather.temp['feels_like']-273.15)
+        status = weather.weather_code
+
+        three_hour_forecast = {
+            'temperature': temp,
+            'status': status
+        }
+
+        return three_hour_forecast

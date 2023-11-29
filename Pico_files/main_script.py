@@ -4,7 +4,6 @@ from PiicoDev_BME280 import PiicoDev_BME280
 import network
 import socket
 from time import sleep
-import time
 import machine
 from machine import Pin
 import struct
@@ -18,7 +17,11 @@ from ir_tx import Player
 with open('weather.json', 'r') as f:
     weather = json.load(f)
 
+weather_keys = weather.keys()
+print(weather_keys)
+
 global reconnect_attempts
+global connected_socket
 
 recieve_dict = LazyJSONLoader('LG_recieve_dict.json')
 weather = LazyJSONLoader('weather.json')
@@ -84,7 +87,7 @@ def check_weather(data):
             weather_condition = from_bytes_big(data)-7773000
             print(weather_condition)
             images = []
-            if weather_condition < 800 and str(weather_condition) in weather_keys:
+            if weather_condition < 800 and str(roundup(weather_condition)) in weather_keys:
                 images = weather.get(str(roundup(weather_condition)))
             elif weather_condition in [800, 801, 802, 803, 804]:
                 images = weather.get(str(weather_condition))
@@ -173,8 +176,7 @@ def socket_connect(HOST, PORT):
     
 
 def log_error(error_message):
-    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    error_data = {'timestamp': timestamp, 'error_message': error_message}
+    error_data = {'error_message': error_message}
 
     try:
         with open(ERROR_LOG_FILE, 'a') as log_file:
@@ -187,17 +189,18 @@ def main():
     reconnect_attempts = 0
 
     while reconnect_attempts < MAX_RECONNECT_ATTEMPTS:
+        ip = connect()
+        sleep(3)
+        tempC, presPa, humRH = sensor.values()
+        UI.indoor_temp(str(int(tempC)))
         try:
-            ip = connect()
-            sleep(3)
-            tempC, presPa, humRH = sensor.values()
-            UI.indoor_temp(str(int(tempC)))
             socket_connect(ip, port)
-        except (socket.error, ConnectionError) as e:
+        except (Exception) as e:
             reconnect_attempts += 1
             print(f"Socket connection lost. Reconnecting... Attempt {reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS}")
             log_error(str(e))
-            time.sleep(RECONNECT_WAIT_SECONDS)
+            sleep(RECONNECT_WAIT_SECONDS)
+        
 
 if __name__ == "__main__":
     main()
