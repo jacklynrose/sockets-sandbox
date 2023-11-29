@@ -199,4 +199,5 @@ def main():
             log_error(str(e))
             time.sleep(RECONNECT_WAIT_SECONDS)
 
-main()
+if __name__ == "__main__":
+    main()
