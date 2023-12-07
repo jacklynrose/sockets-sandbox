@@ -23,6 +23,7 @@ class SignalSend:
             print(f"Received data: {bin(binary_int)}")
 
     def error(self, signal):
+
         error_dict = {
             '1': 'cannot display two weather images',
             '2': 'cannot display one weather image',
