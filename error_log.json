@@ -9,3 +9,10 @@
 {"timestamp": "2023-11-29 15:02:14", "error_message": "[WinError 10061] No connection could be made because the target machine actively refused it"}
 {"timestamp": "2023-11-29 15:06:58", "error_message": "[WinError 10053] An established connection was aborted by the software in your host machine"}
 {"timestamp": "2023-11-29 15:07:30", "error_message": "[WinError 10061] No connection could be made because the target machine actively refused it"}
+{"timestamp": "2023-11-29 15:08:03", "error_message": "[WinError 10061] No connection could be made because the target machine actively refused it"}
+{"timestamp": "2023-11-29 15:08:54", "error_message": "[WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond"}
+{"timestamp": "2023-11-29 15:09:45", "error_message": "[WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond"}
+{"timestamp": "2023-11-29 15:21:47", "error_message": "[WinError 10053] An established connection was aborted by the software in your host machine"}
+{"timestamp": "2023-11-29 15:22:20", "error_message": "[WinError 10061] No connection could be made because the target machine actively refused it"}
+{"timestamp": "2023-11-29 15:22:52", "error_message": "[WinError 10061] No connection could be made because the target machine actively refused it"}
+{"timestamp": "2023-11-29 15:23:43", "error_message": "[WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond"}

@@ -17,7 +17,21 @@ class SignalSend:
     def listen(self, ):
         data = self.socket.recv(4)
         binary_int = int.from_bytes(data, byteorder='big')
-        print(f"Received data: {bin(binary_int)}")
+        if binary_int%64000 == 0:
+            self.error(binary_int)
+        else:
+            print(f"Received data: {bin(binary_int)}")
+
+    def error(self, signal):
+        error_dict = {
+            '1': 'cannot display two weather images',
+            '2': 'cannot display one weather image',
+            '3': 'cannot display time'
+        }
+
+        error_code = int(signal-64000)
+        print(f'ERROR: {error_dict[str(error_code)]}')
+
 
     def set_power(self,
                   power_on=0,
