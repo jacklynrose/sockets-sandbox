@@ -30,7 +30,7 @@ class SignalSend:
             '3': 'cannot display time'
         }
 
-        error_code = int(signal-64000)
+        error_code = int(64000-signal)
         print(f'ERROR: {error_dict[str(error_code)]}')
 
 
