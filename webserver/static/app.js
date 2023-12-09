@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fanHighEl = document.getElementById('fan-high')
     const swingHorizontal = document.getElementById('swing-horizontal')
     const swingVertical = document.getElementById('swing-vertical')
+    const timerTypeRadioButtons = document.getElementsByName('timer-type')
+    const timerMinutes = document.getElementsByName('timer-minutes')[0]
+    const setTimerButton = document.getElementsByName('timer-active')[0]
+    const lastTimerSet = document.getElementById('last-timer-set')
+    const timerStartAfter = document.getElementById('timer-start-after')
+    const timerEndAfter = document.getElementById('timer-end-after')
 
     render()
 
@@ -24,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function setState(name, value) {
-        await fetch(`/set/${name}/${value}`)
+        await fetch(`/set/${name}${value ? '/' : ''}${value}`)
         await getState()
     }
 
@@ -72,6 +78,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         swingVertical.classList.remove('outline')
         if (appState.swing === "off" || appState.swing === "horizontal") {
             swingVertical.classList.add('outline')
+        }
+
+        lastTimerSet.classList.remove('hidden')
+        if (appState.timerStartAt) {
+            lastTimerSet.innerHTML = `Last timer set at ${new Date(appState.timerStartAt)}`
+        } else {
+            lastTimerSet.classList.add('hidden')
+        }
+
+        if (appState.timerType === 'start') {
+            timerStartAfter.checked = true
+        } else if (appState.timerType === 'end') {
+            timerEndAfter.checked = true
+        } else {
+            timerStartAfter.checked = false
+            timerEndAfter.checked = false
+        }
+
+        if (appState.durationInMinutes) {
+            timerMinutes.value = Number(appState.durationInMinutes)
+        } else {
+            timerMinutes.value = undefined
+        }
+
+        if (appState.timerActive === "true") {
+            setTimerButton.checked = true
+        } else {
+            setTimerButton.checked = false
         }
     }
 
@@ -139,6 +173,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (appState.swing === "off") {
             await setState("swing", "vertical")
         }
+
+        render()
+    })
+
+    setTimerButton.addEventListener('click', async () => {
+        if (setTimerButton.checked) {
+            await setState("durationInMinutes", String(timerMinutes.value))
+            await setState("timerType", [...timerTypeRadioButtons].reduce((acc, typeRadio) => {
+                return typeRadio.checked ? typeRadio.value : acc
+        }, ""))
+            await setState("timerStartAt", new Date().toISOString())
+            await setState("timerActive", "true")
+        } else {
+            await setState("durationInMinutes", "")
+            await setState("timerType", "")
+            await setState("timerStartAt", "")
+            await setState("timerActive", "false")
+        }
+        
 
         render()
     })

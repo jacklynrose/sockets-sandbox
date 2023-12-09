@@ -168,6 +168,36 @@
                 </div>
             </div>
         </article>
+
+        <article>
+            <header>
+                <h2 class="typography-center typography-slim">Automation</h2>
+            </header>
+            <div class="grid">
+                <div class="flex-bottom">
+                    <label>
+                        <input type="radio" name="timer-type" value="start" id="timer-start-after" />
+                        Start after
+                    </label>
+                    <label>
+                        <input type="radio" name="timer-type" value="end" id="timer-end-after" />
+                        End after
+                    </label>
+                </div>
+                <div class="flex-bottom">
+                    <label>Minutes</label>
+                    <input type="number" name="timer-minutes" placeholder="60" style="margin-bottom: 0;" />
+                </div>
+                <div class="flex-bottom">
+                    <label class="oversize flex-center">
+                        <input role="switch" type="checkbox" name="timer-active" />
+                    </label>
+                </div>
+            </div>
+            <div id="last-timer-set">
+                
+            </div>
+        </article>
     </main>
 </body>
 

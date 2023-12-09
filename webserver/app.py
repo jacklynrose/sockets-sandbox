@@ -11,16 +11,25 @@ state = {
     "mode": "auto",
     "temp": "21",
     "fan": "1",
-    "swing": "both"
+    "swing": "both",
+    "durationInMinutes": "",
+    "timerType": "",
+    "timerStartAt": "",
+    "timerActive": "false",
 } 
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/set/<name>', defaults={'value': None})
 @app.route('/set/<name>/<value>')
 def set(name, value):
-    state[name] = value
+    if (value):
+        state[name] = value
+    else:
+        state[name] = None
+    
     return 'OK'
 
 @app.route('/get')
